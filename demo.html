@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>郑州大学成绩查询</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .container { margin: 20px 0; }
+    input { padding: 8px; width: 200px; }
+    button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    .info { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>郑州大学成绩查询</h1>
+  <div class="container">
+    <input type="text" id="studentID" placeholder="请输入学号">
+    <button onclick="query()">查询</button>
+  </div>
+  <div id="result" class="info"></div>
+  <table id="gradesTable" style="display: none;">
+    <thead>
+      <tr>
+        <th>学期</th>
+        <th>课程名称</th>
+        <th>学分</th>
+        <th>成绩</th>
+        <th>绩点</th>
+      </tr>
+    </thead>
+    <tbody id="gradesBody"></tbody>
+  </table>
+
+  <script>
+    async function query() {
+      const studentID = document.getElementById('studentID').value.trim();
+      if (!studentID) return alert('请输入学号');
+      
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = 'Loading...';
+      
+      try {
+        // 生成 URL
+        const urls = generateURLs(studentID);
+        
+        // 请求第一个 URL
+        const u0Response = await fetch(urls[0], {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+          }
+        });
+        
+        if (!u0Response.ok) throw new Error('无法获取u0数据');
+        const u0Data = await u0Response.text();
+        
+        // 请求第二个 URL
+        const u1Response = await fetch(urls[1], {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+          }
+        });
+        
+        if (!u1Response.ok) throw new Error('无法获取u1数据');
+        const u1Data = await u1Response.text();
+        
+        // 解析数据
+        const data = parseData(u0Data, u1Data);
+        
+        // 更新个人信息
+        resultDiv.innerHTML = `
+          <p>班级: ${data.class}</p>
+          <p>姓名: ${data.name}</p>
+          <p>GPA: ${data.gpa}</p>
+          <p>排名: ${data.rank}</p>
+          `;
+          //   <p>学期绩点: ${data.termGP}</p>
+        
+        // 更新表格数据
+        document.getElementById('gradesTable').style.display = 'table';
+        document.getElementById('gradesBody').innerHTML = '';
+        
+        data.grades.forEach(item => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${item.term}</td>
+            <td>${item.crname}</td>
+            <td>${item.credits}</td>
+            <td>${item.grades}</td>
+            <td>${item.gpoints}</td>
+          `;
+          document.getElementById('gradesBody').appendChild(row);
+        });
+      } catch (error) {
+        resultDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
+      }
+    }
+    
+    function generateURLs(studentID) {
+      const sID = parseInt(studentID);
+      if (isNaN(sID)) throw new Error('学号必须是数字');
+      
+      const sIDClass = Math.floor((sID / 100) % 10);
+      const sIDId = sID % 100;
+      const urlDelta = 32 * (sIDClass - 1) + sIDId;
+      
+      const urlA = urlDelta + 455276;
+      const timestamp = Date.now();
+      
+      const part1 = `${urlA}_${sID}_${urlA}_${timestamp}`;
+      const encodeUrl0 = btoa(part1);
+      
+      const part2 = `${urlA}_${sID}_1_${timestamp}`;
+      const encodeUrl1 = btoa(part2);
+      
+      return [
+        `https://jw.v.zzu.edu.cn/eams/check-grade!printGradeRank.action?state=${encodeUrl0}`,
+        `https://jw.v.zzu.edu.cn/eams/check-grade!report.action?state=${encodeUrl1}`
+      ];
+    }
+    
+    function parseData(u0Data, u1Data) {
+      const result = {
+        class: '',
+        name: '',
+        gpa: '',
+        rank: '',
+        termGP: '',
+        grades: []
+      };
+      
+      try {
+        // 解析个人信息
+        const classMatch = u1Data.match(/班级名称:(.+?)<\/td>/);
+        const nameMatch = u0Data.match(/姓名:(.+?),学号/);
+        const gpaMatch = u0Data.match(/为(.+?),专业/);
+        const rankMatch = u0Data.match(/第(.+?)名/);
+        const totalMatch = u0Data.match(/总人数(.+?)。/);
+        
+        result.class = classMatch ? classMatch[1].trim() : 'N/A';
+        result.name = nameMatch ? nameMatch[1].trim() : 'N/A';
+        result.gpa = gpaMatch ? gpaMatch[1].trim() : 'N/A';
+        result.rank = rankMatch && totalMatch ? `${rankMatch[1].trim()}/${totalMatch[1].trim()}` : 'N/A';
+        
+        // 解析学期绩点
+        const termGPMatch = u1Data.match(/学期平均绩点:[\s\S]*?(\d+\.\d+)/);
+        result.termGP = termGPMatch ? termGPMatch[1].trim() : 'N/A';
+        
+        // 解析课程数据
+        const courseRows = u1Data.match(/<tr>[\s\S]*?<td class="tableStyleTd2" >[^<]+<\/td>[\s\S]*?<\/tr>/g) || [];
+        
+        let termName
+            
+        courseRows.forEach(row => {
+          const termMatch = row.match(/、([^<]+) /)
+          const courseMatch = row.match(/<td class="tableStyleTd2" >([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd8">([^<]+)<\/td>/);
+          
+          if (termMatch) {
+            termName = termMatch[1].trim()
+          }
+            
+          if (courseMatch) {
+            result.grades.push({
+              term: termName,
+              crname: courseMatch[1].trim(),
+              type: courseMatch[2].trim(),
+              credits: courseMatch[3].trim(),
+              grades: courseMatch[4].trim(),
+              gpoints: courseMatch[5].trim()
+            });
+          }
+        });
+        
+        return result;
+      } catch (error) {
+        throw new Error(`数据解析失败: ${error.message}`);
+      }
+    }
+  </script>
+</body>
+</html>
