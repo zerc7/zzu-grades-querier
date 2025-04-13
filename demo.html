@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>ZZU Grades Querier</title>
-
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />  
   <style>
     html { max-width: 800px; margin: auto; }
     body { font-family: 'Times New Roman', Times, serif; text-align: center; }
@@ -39,6 +39,30 @@
   </style>
 
   <script>
+    let DebugMode = false;
+    let clickCount = 0;
+    let lastClickTime = 0;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const footer = document.getElementById('footer');
+      footer.addEventListener('click', function() {
+        const currentTime = Date.now();
+
+        if (currentTime - lastClickTime > 10000) {
+          clickCount = 0;
+        }
+
+        clickCount++;
+        lastClickTime = currentTime;
+
+        if (clickCount >= 5) {
+          DebugMode = true;
+          document.getElementById('list').innerHTML = 'Debug Mode Activated';
+          clickCount = 0;
+        }
+      });
+    });
+
     async function query() {
       const studentID = document.getElementById('studentID').value.trim();
       if(!studentID) return alert('Please enter student ID');
@@ -58,7 +82,6 @@
         if (!u1Response.ok) throw new Error('Error!');
         const u1Data = await u1Response.text();
         const data = parseData(u0Data, u1Data);
-        const DebugMode = document.getElementById('DebugMode').checked;
         if (DebugMode) resultDiv.innerHTML = genUID(studentID) + `<br><a href=${urls[0]}>raw data 0</a><br><a href=${urls[1]}>raw data 1</a>`;
         else resultDiv.innerHTML = '';
         document.getElementById('infoTable').style.display = 'table';
@@ -116,7 +139,7 @@
 
         return result;
       } catch (error) {
-        throw new Error(`数据解析失败: ${error.message}`);
+        throw new Error(`Parse Data Error: ${error.message}`);
       }
     }
 
@@ -187,7 +210,7 @@
   <table id="infoTable" style="display: none;"><thead><tr><th>班级</th><th>姓名</th><th>GPA</th><th>排名</th></tr></thead><tbody id="infoBody"></tbody></table>
   <table id="gradesTable" style="display: none;"><thead><tr><th>学期</th><th>课程名称</th><th>学分</th><th>成绩</th><th>绩点</th></tr></thead><tbody id="gradesBody"></tbody></table>
   <footer id="footer">
-    © 2025 Zerc | <input type="checkbox" id="DebugMode">Debug Mode
+    © 2025 ZERC | Ver 0.1.1_Alpha
   </footer>
 </body>
 </html>
