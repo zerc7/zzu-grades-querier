@@ -1,139 +1,84 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>郑州大学成绩查询</title>
+  <meta charset="utf-8">
+  <title>ZZU Grades Querier</title>
+
   <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .container { margin: 20px 0; }
-    input { padding: 8px; width: 200px; }
-    button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    html { max-width: 800px; margin: auto; }
+    body { font-family: 'Times New Roman', Times, serif; text-align: center; }
+    footer { position: absolute; bottom: 0; left: 0; right: 0; font-family: 'Courier New', Courier, monospace;
+      /* background-color: rgba(128, 128, 128, 0.1); */
+    }
+    h1 { margin-top: 80px; margin-bottom: 50px; }
+    div[id="list"] { margin-top: 100px; font-family: 'Courier New', Courier, monospace; }
+    input[type="text"] {
+      padding: 8px;
+      width: 200px;
+      border-radius: 4px;
+      border: 1px solid gray;
+    }
+    input[type="text"]:focus {
+      border: 1px solid rgba(0, 0, 0, 0.9);
+      outline: 0px;
+    }
+    button {
+      padding: 8px;
+      width: 60px;
+      border-radius: 4px;
+      border: 1px solid gray;
+      /* background-color:#4CAF50; 4da350*/
+      background-color: white;
+      color: gray;
+      cursor: pointer;
+    }
+    button:hover { background-color: #4CAF50; color: white; border-color: #4CAF50; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
     th { background-color: #f2f2f2; }
-    .info { margin-top: 10px; }
   </style>
-</head>
-<body>
-  <h1>郑州大学成绩查询</h1>
-  <div class="container">
-    <input type="text" id="studentID" placeholder="请输入学号">
-    <button onclick="query()">查询</button>
-  </div>
-  <div id="result" class="info"></div>
-  <table id="gradesTable" style="display: none;">
-    <thead>
-      <tr>
-        <th>学期</th>
-        <th>课程名称</th>
-        <th>学分</th>
-        <th>成绩</th>
-        <th>绩点</th>
-      </tr>
-    </thead>
-    <tbody id="gradesBody"></tbody>
-  </table>
 
   <script>
     async function query() {
       const studentID = document.getElementById('studentID').value.trim();
-      if (!studentID) return alert('请输入学号');
-      
+      if(!studentID) return alert('Please enter student ID');
+
+      document.getElementById('footer').style.display = 'none';
+      document.getElementById('list').style.display = 'none';
+
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = 'Loading...';
-      
       try {
-        // 生成 URL
-        const urls = generateURLs(studentID);
-        
-        // 请求第一个 URL
-        const u0Response = await fetch(urls[0], {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-          }
-        });
-        
-        if (!u0Response.ok) throw new Error('无法获取u0数据');
+        const urls = genURLs(studentID);
+        const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3';
+        const u0Response = await fetch(urls[0], {headers: {'User-Agent': UA}});
+        if (!u0Response.ok) throw new Error('Error!');
         const u0Data = await u0Response.text();
-        
-        // 请求第二个 URL
-        const u1Response = await fetch(urls[1], {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-          }
-        });
-        
-        if (!u1Response.ok) throw new Error('无法获取u1数据');
+        const u1Response = await fetch(urls[1], {headers: {'User-Agent': UA}});
+        if (!u1Response.ok) throw new Error('Error!');
         const u1Data = await u1Response.text();
-        
-        // 解析数据
         const data = parseData(u0Data, u1Data);
-        
-        // 更新个人信息
-        resultDiv.innerHTML = `
-          <p>班级: ${data.class}</p>
-          <p>姓名: ${data.name}</p>
-          <p>GPA: ${data.gpa}</p>
-          <p>排名: ${data.rank}</p>
-          `;
-          //   <p>学期绩点: ${data.termGP}</p>
-        
-        // 更新表格数据
+        const DebugMode = document.getElementById('DebugMode').checked;
+        if (DebugMode) resultDiv.innerHTML = genUID(studentID) + `<br><a href=${urls[0]}>raw data 0</a><br><a href=${urls[1]}>raw data 1</a>`;
+        else resultDiv.innerHTML = '';
+        document.getElementById('infoTable').style.display = 'table';
+        document.getElementById('infoBody').innerHTML = `<tr><td>${data.class}</td><td>${data.name}</td><td>${data.gpa}</td><td>${data.rank}</td></tr>`;
         document.getElementById('gradesTable').style.display = 'table';
         document.getElementById('gradesBody').innerHTML = '';
-        
+
         data.grades.forEach(item => {
           const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${item.term}</td>
-            <td>${item.crname}</td>
-            <td>${item.credits}</td>
-            <td>${item.grades}</td>
-            <td>${item.gpoints}</td>
-          `;
+          row.innerHTML = `<td>${item.term}</td><td>${item.crname}</td><td>${item.credits}</td><td>${item.grades}</td><td>${item.gpoints}</td>`;
           document.getElementById('gradesBody').appendChild(row);
         });
-      } catch (error) {
+      } catch(error) {
         resultDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
       }
     }
-    
-    function generateURLs(studentID) {
-      const sID = parseInt(studentID);
-      if (isNaN(sID)) throw new Error('学号必须是数字');
-      
-      const sIDClass = Math.floor((sID / 100) % 10);
-      const sIDId = sID % 100;
-      const urlDelta = 32 * (sIDClass - 1) + sIDId;
-      
-      const urlA = urlDelta + 455276;
-      const timestamp = Date.now();
-      
-      const part1 = `${urlA}_${sID}_${urlA}_${timestamp}`;
-      const encodeUrl0 = btoa(part1);
-      
-      const part2 = `${urlA}_${sID}_1_${timestamp}`;
-      const encodeUrl1 = btoa(part2);
-      
-      return [
-        `https://jw.v.zzu.edu.cn/eams/check-grade!printGradeRank.action?state=${encodeUrl0}`,
-        `https://jw.v.zzu.edu.cn/eams/check-grade!report.action?state=${encodeUrl1}`
-      ];
-    }
-    
+
     function parseData(u0Data, u1Data) {
-      const result = {
-        class: '',
-        name: '',
-        gpa: '',
-        rank: '',
-        termGP: '',
-        grades: []
-      };
-      
+      const result = {class: '', name: '', gpa: '', rank: '', grades: []};
       try {
-        // 解析个人信息
         const classMatch = u1Data.match(/班级名称:(.+?)<\/td>/);
         const nameMatch = u0Data.match(/姓名:(.+?),学号/);
         const gpaMatch = u0Data.match(/为(.+?),专业/);
@@ -144,24 +89,19 @@
         result.name = nameMatch ? nameMatch[1].trim() : 'N/A';
         result.gpa = gpaMatch ? gpaMatch[1].trim() : 'N/A';
         result.rank = rankMatch && totalMatch ? `${rankMatch[1].trim()}/${totalMatch[1].trim()}` : 'N/A';
-        
-        // 解析学期绩点
-        const termGPMatch = u1Data.match(/学期平均绩点:[\s\S]*?(\d+\.\d+)/);
-        result.termGP = termGPMatch ? termGPMatch[1].trim() : 'N/A';
-        
-        // 解析课程数据
+
+        // const termGPMatch = u1Data.match(/学期平均绩点:[\s\S]*?(\d+\.\d+)/);
+
         const courseRows = u1Data.match(/<tr>[\s\S]*?<td class="tableStyleTd2" >[^<]+<\/td>[\s\S]*?<\/tr>/g) || [];
         
         let termName
-            
         courseRows.forEach(row => {
           const termMatch = row.match(/、([^<]+) /)
           const courseMatch = row.match(/<td class="tableStyleTd2" >([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd">([^<]+)<\/td>[\s\S]*?<td class="tableStyleTd8">([^<]+)<\/td>/);
-          
+
           if (termMatch) {
             termName = termMatch[1].trim()
           }
-            
           if (courseMatch) {
             result.grades.push({
               term: termName,
@@ -173,12 +113,81 @@
             });
           }
         });
-        
+
         return result;
       } catch (error) {
         throw new Error(`数据解析失败: ${error.message}`);
       }
     }
+
+    function genURLs(sID) {
+      const uID = genUID(sID);
+      const timestamp = Date.now();
+      const encodeUrl0 = btoa(`${uID}_${sID}_${uID}_${timestamp}`);
+      const encodeUrl1 = btoa(`${uID}_${sID}_1_${timestamp}`);
+      return [
+        `https://jw.v.zzu.edu.cn/eams/check-grade!printGradeRank.action?state=${encodeUrl0}`,
+        `https://jw.v.zzu.edu.cn/eams/check-grade!report.action?state=${encodeUrl1}`
+      ];
+    }
+
+    function genUID(studentID) {
+      const sID = parseInt(studentID);
+
+      const sIDGrade   = 0 | (sID / 100000000) % 10000;
+      const sIDCollege = 0 | (sID / 1000000) % 100;
+      const sIDMajor   = 0 | (sID / 10000) % 100;
+      const sIDClass   = 0 | (sID / 100) % 100;
+      const sIDId      = 0 | (sID / 1) % 100;
+
+      let uid = -1;
+      switch(sIDGrade) {
+        case 2023: switch(sIDCollege) {
+          // case 15: switch(sIDMajor) {
+          //   case 6: uid = 444353; break; // 202315060641
+          // }
+          case 21: switch(sIDMajor) {
+            case 0: uid = (sIDClass - 1) * 32 + sIDId + 444353 - (sIDClass >= 4 ? sIDClass - 3 : 0); break;
+            default: break;
+          } break;
+        } break;
+        case 2024: switch(sIDCollege) {
+          // case 11: switch(sIDMajor) {
+          //   case 0: uid = 454517; break;
+          // } break;
+          case 15: switch(sIDMajor) {
+            case 0: uid = (sIDClass - 1) * 51 + sIDId + 454518 - (sIDClass >= 8 ? sIDClass - 7 : 0); break;
+            case 6: uid = (sIDClass - 1) * 42 + sIDId + 455024; break;
+          } break;
+          case 21: switch(sIDMajor) {
+            case 0: uid = (sIDClass - 1) * 32 + sIDId + 455276; break;
+            case 6: uid = (sIDClass - 1) * 35 + sIDId + 455467; break;
+          } break;
+          case 22: switch(sIDMajor) {
+            case 0: uid = (sIDClass - 1) * 33 + sIDId + 455537 - (sIDClass >= 6 ? sIDClass - 5 : 0); break;
+          } break;
+          // case 23: switch(sIDMajor) {
+          //   case 0: uid = (sIDClass - 1) * 35 + sIDId + 455797; break;
+          // } break;
+        } break;
+      }
+      return uid;
+    }
   </script>
+</head>
+
+<body>
+  <h1>ZZU Grades Querier</h1>
+  <div>
+    <input type="text" id="studentID" autocomplete="off" autofocus="ok" onkeypress="if(event.key === 'Enter') query()" placeholder="Please enter student ID">
+    <button onclick="query()">Query</button>
+  </div>
+  <div id="list">List of supported student IDs:<br>202321______<br>202415______<br>202421______<br>202422______</div>
+  <div id="result"></div>
+  <table id="infoTable" style="display: none;"><thead><tr><th>班级</th><th>姓名</th><th>GPA</th><th>排名</th></tr></thead><tbody id="infoBody"></tbody></table>
+  <table id="gradesTable" style="display: none;"><thead><tr><th>学期</th><th>课程名称</th><th>学分</th><th>成绩</th><th>绩点</th></tr></thead><tbody id="gradesBody"></tbody></table>
+  <footer id="footer">
+    © 2025 Zerc | <input type="checkbox" id="DebugMode">Debug Mode
+  </footer>
 </body>
 </html>
