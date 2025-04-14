@@ -67,7 +67,7 @@
       const studentID = document.getElementById('studentID').value.trim();
       if(!studentID) return alert('Please enter student ID');
 
-      document.getElementById('footer').style.display = 'none';
+      document.getElementById('ver').style.display = 'none';
       document.getElementById('list').style.display = 'none';
 
       const resultDiv = document.getElementById('result');
@@ -97,6 +97,7 @@
       } catch(error) {
         resultDiv.innerHTML = `<p style="color: red;">${error.message}</p>`;
       }
+      gtag('event', 'function_called', { 'event_category': 'Query Function', 'event_label': 'Query' });
     }
 
     function parseData(u0Data, u1Data) {
