@@ -44,8 +44,8 @@
     let lastClickTime = 0;
 
     document.addEventListener('DOMContentLoaded', function() {
-      const footer = document.getElementById('footer');
-      footer.addEventListener('click', function() {
+      const ver = document.getElementById('ver');
+      ver.addEventListener('click', function() {
         const currentTime = Date.now();
 
         if (currentTime - lastClickTime > 10000) {
@@ -197,20 +197,28 @@
       return uid;
     }
   </script>
+  <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 </head>
-
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PM2L5ZZ5QZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-PM2L5ZZ5QZ');
+</script>
 <body>
   <h1>ZZU Grades Querier</h1>
   <div>
     <input type="text" id="studentID" autocomplete="off" autofocus="ok" onkeypress="if(event.key === 'Enter') query()" placeholder="Please enter student ID">
     <button onclick="query()">Query</button>
   </div>
-  <div id="list">List of supported student IDs:<br>202321______<br>202415______<br>202421______<br>202422______</div>
+  <div id="list">List of supported student IDs:<br>202321000101-202321000831<br>202415000101-202415001050<br>202415060101-202415060642<br>202421000102-202421000631<br>202421060101-202421060235<br>202422000101-202422000832</div>
   <div id="result"></div>
   <table id="infoTable" style="display: none;"><thead><tr><th>班级</th><th>姓名</th><th>GPA</th><th>排名</th></tr></thead><tbody id="infoBody"></tbody></table>
   <table id="gradesTable" style="display: none;"><thead><tr><th>学期</th><th>课程名称</th><th>学分</th><th>成绩</th><th>绩点</th></tr></thead><tbody id="gradesBody"></tbody></table>
-  <footer id="footer">
-    © 2025 ZERC | Ver 0.1.1_Alpha
+  <footer>
+    <span>Page View </span><span id="busuanzi_value_page_pv"></span><br>
+    <span>© 2025 ZERC</span> <span id="ver">0.1.2_Alpha</span>
   </footer>
 </body>
 </html>
