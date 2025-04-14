@@ -67,7 +67,7 @@
       const studentID = document.getElementById('studentID').value.trim();
       if(!studentID) return alert('Please enter student ID');
 
-      document.getElementById('ver').style.display = 'none';
+      document.getElementById('footer').style.display = 'none';
       document.getElementById('list').style.display = 'none';
 
       const resultDiv = document.getElementById('result');
@@ -217,7 +217,7 @@
   <div id="result"></div>
   <table id="infoTable" style="display: none;"><thead><tr><th>班级</th><th>姓名</th><th>GPA</th><th>排名</th></tr></thead><tbody id="infoBody"></tbody></table>
   <table id="gradesTable" style="display: none;"><thead><tr><th>学期</th><th>课程名称</th><th>学分</th><th>成绩</th><th>绩点</th></tr></thead><tbody id="gradesBody"></tbody></table>
-  <footer>
+  <footer id="footer">
     <span>Page View </span><span id="busuanzi_value_page_pv"></span><br>
     <span>© 2025 ZERC</span> <span id="ver">0.1.2_Alpha</span>
   </footer>
